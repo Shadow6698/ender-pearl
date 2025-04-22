@@ -1,0 +1,65 @@
+local Tool = script.Parent
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local THROW_FORCE = 100  -- Velocidade da bola
+local PEARL_SIZE = Vector3.new(3.5, 3.5, 3.5)
+
+-- Função para criar a pearl
+local function createPearl(character)
+	local player = Players:GetPlayerFromCharacter(character)
+	if not player then return end
+
+	local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+	if not humanoidRootPart then return end
+
+	local pearl = Instance.new("Part")
+	pearl.Shape = Enum.PartType.Ball
+	pearl.Size = PEARL_SIZE
+	pearl.Color = Color3.fromRGB(50, 200, 255)
+	pearl.Material = Enum.Material.Neon
+	pearl.Anchored = false
+	pearl.CanCollide = false
+	pearl.CFrame = humanoidRootPart.CFrame + humanoidRootPart.CFrame.LookVector * 2
+	pearl.Velocity = humanoidRootPart.CFrame.LookVector * THROW_FORCE
+	pearl.Name = "EnderPearl"
+	pearl.Parent = workspace
+
+	local bodyForce = Instance.new("BodyForce", pearl)
+	bodyForce.Force = Vector3.new(0, pearl:GetMass() * workspace.Gravity, 0)
+
+	local connection
+	connection = pearl.Touched:Connect(function(hit)
+		if hit:IsDescendantOf(character) then return end
+
+		-- Teleporta o jogador
+		local teleportPos = pearl.Position + Vector3.new(0, 3, 0)
+		humanoidRootPart.CFrame = CFrame.new(teleportPos)
+
+		pearl:Destroy()
+		if connection then connection:Disconnect() end
+	end)
+
+	-- Auto-destruição em 10 segundos se não tocar nada
+	task.delay(10, function()
+		if pearl and pearl.Parent then
+			pearl:Destroy()
+			if connection then connection:Disconnect() end
+		end
+	end)
+end
+
+-- Detecta clique no PC
+Tool.Activated:Connect(function()
+	local character = Tool.Parent
+	createPearl(character)
+end)
+
+-- Detecta toque contínuo no mobile
+Tool.Equipped:Connect(function(mouse)
+	if not mouse then return end
+	mouse.Button1Down:Connect(function()
+		local character = Tool.Parent
+		createPearl(character)
+	end)
+end)
